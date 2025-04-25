@@ -1,3 +1,4 @@
+/* Основной стиль */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,15 +6,18 @@
   text-align: center;
 }
 
+/* Логотип */
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -33,10 +37,209 @@
   }
 }
 
+/* Карточки */
 .card {
-  padding: 2em;
+  background-color: #fff;
+  color: #000;
+  border-radius: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 600px; /* Ограничиваем ширину карточек */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
 
+.card img {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.card .flex {
+  display: flex;
+  align-items: center;
+}
+
+.card .flex-1 {
+  flex: 1;
+}
+
+.card button {
+  background-color: #000;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.card button:hover {
+  background-color: #fff;
+  color: #000;
+}
+
+/* Боковая панель для категорий */
+.category-container {
+  position: fixed;
+  top: 4rem; /* Отступ от заголовка приложения */
+  left: 0;
+  width: 20%; /* Ширина панели */
+  height: calc(100% - 4rem); /* Высота панели до низа экрана */
+  background-color: #fff; /* Черный фон */
+  padding: 1rem;
+  overflow-y: auto; /* Скроллинг, если категории выходят за пределы */
+  border-right: 0px solid #000; /* Разделительная линия */
+  z-index: 10; /* Поверх основного контента */
+}
+
+/* Основной контент */
+.content-container {
+  margin-left: 20%; /* Сдвиг контента вправо на ширину боковой панели */
+  padding: 1rem;
+  width: calc(100% - 20%); /* Учитываем ширину панели */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Центрирование содержимого */
+}
+
+/* Категории */
+.category-button {
+  font-size: 1rem;
+  font-weight: bold;
+  font-color: #444;
+  text-fill-color: #444;
+  background-color: #fff;
+  color: #444;
+  border: 1px solid #fff;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  width: auto; /* Кнопка занимает всю ширину */
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.category-button:hover {
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #999;
+  border-radius: 20px;
+}
+
+.category-button.selected {
+  background-color: #222; /* Серый фон для выбранной категории */
+  color: #fff;
+  border-radius: 20px;
+}
+
+/* Подкатегории */
+.subcategory-button {
+  font-size: 0.9rem; /* Меньший размер шрифта для подкатегорий */
+  font-style: italic;
+  font-weight: inherit;
+  background-color: #fff;
+  color: #999;
+  border: 0px solid #fff;
+  border-radius: 20px;
+  padding: 0.9rem 0.8rem;
+  width: 90%; /* Подкатегории занимают чуть меньшую ширину */
+  margin-left: 1,5rem; /* Сдвиг вправо для визуального отделения */
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  border-radius: 50px;
+}
+
+.subcategory-button:hover {
+  background-color: #fff;
+  color: #000;
+}
+
+.subcategory-button.selected {
+  background-color: #222; /* Серый фон для выбранной подкатегории */
+  color: #fff;
+}
+
+/* Поиск */
+input[type="text"] {
+  width: 100%;
+  max-width: 600px; /* Ограничиваем максимальную ширину поля ввода */
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 1rem;
+}
+
+/* Мобильное меню */
+@media (max-width: 768px) {
+  .category-container {
+    position: fixed;
+    top: 4rem;
+    left: 0;
+    width: 70%; /* Боковая панель занимает больше места */
+    height: calc(100% - 4rem);
+    z-index: 20;
+    transform: translateX(-100%); /* Скрыто по умолчанию */
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .category-container.open {
+    transform: translateX(0); /* Показать боковую панель */
+  }
+
+  .content-container {
+    margin-left: 0; /* Контент занимает всю ширину */
+    padding: 1rem;
+  }
+
+  .mobile-menu-button {
+    display: block;
+    background-color: #000;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+  }
+
+  .mobile-menu-button:hover {
+    background-color: #fff;
+    color: #000;
+  }
+}
+
+/* Прочие элементы */
 .read-the-docs {
   color: #888;
+}
+
+.breadcrumbs {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: #555;
+}
+
+.breadcrumb {
+  display: inline;
+}
+
+.breadcrumb-button {
+  background: none;
+  border: none;
+  color: #A9A9A9;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.breadcrumb-button:hover {
+  color: #696969;
 }

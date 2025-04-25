@@ -37,34 +37,59 @@ const CartView = ({ cart, setCart, userName }) => {
     try {
       // Для каждого товара в корзине отправляем запрос на обновление остатков
       for (let item of cart) {
-        const newQuantity = item.quantityAvailable - item.quantity;  // Расчёт нового остатка на складе
-        await fetch('http://localhost:3000/updateInventory', {
-          method: 'POST',
+        // Проверяем корректность данных quantityAvailable
+        let available = Number(item.quantityAvailable);
+        if (isNaN(available)) {
+          console.warn(
+            `Некорректное значение quantityAvailable для ID ${item.id}: ${item.quantityAvailable}`
+          );
+          available = Number(item.quantity); // Используем текущее количество как резервное значение
+        }
+
+        const newQuantity = available - item.quantity;
+
+        // Проверяем корректность нового остатка
+        if (isNaN(newQuantity) || newQuantity < 0) {
+          console.error(
+            `Ошибка при расчете нового остатка для ID ${item.id}. Данные:`,
+            item
+          );
+          continue; // Пропускаем текущий товар
+        }
+
+        console.log(
+          `Обновление товара с ID: ${item.id}, заказанное количество: ${item.quantity}`
+        );
+        console.log(`Новый остаток на складе: ${newQuantity}`);
+
+        await fetch("http://localhost:3000/updateInventory", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: item.id,        // ID товара
-            orderedQuantity: item.quantity,  // Заказанное количество
+            id: item.id, // ID товара
+            orderedQuantity: item.quantity, // Заказанное количество
+            newQuantity: newQuantity, // Новый рассчитанный остаток
           }),
         });
       }
       // После обновления остатков можно генерировать PDF
-      alert('Остатки на складе обновлены! Теперь генерируем PDF.');
+      alert("Остатки на складе обновлены! Теперь генерируем PDF.");
       PDFGenerator(cart, userName, projectName, deliveryDate, returnDate);
     } catch (error) {
-      console.error('Ошибка при обновлении остатков:', error);
-      alert('Ошибка при обновлении остатков. Пожалуйста, попробуйте снова.');
+      console.error("Ошибка при обновлении остатков:", error);
+      alert("Ошибка при обновлении остатков. Пожалуйста, попробуйте снова.");
     }
   };
 
   // Экспорт в PDF
   const exportToPDF = () => {
     if (!Array.isArray(cart)) {
-      alert('Ошибка: корзина не является массивом');
+      alert("Ошибка: корзина не является массивом");
       return;
     }
-    updateInventory();  // Вызываем функцию обновления остатков перед генерацией PDF
+    updateInventory(); // Вызываем функцию обновления остатков перед генерацией PDF
   };
 
   return (
@@ -81,6 +106,7 @@ const CartView = ({ cart, setCart, userName }) => {
           />
           <div className="flex-1">
             <h3 className="font-bold text-lg">{item.name}</h3>
+            <p className="text-sm text-gray-700 mb-2">Доступно: {item.quantityAvailable}</p>
             <div className="flex items-center gap-3 mt-2">
               <button
                 onClick={() => decrease(item.id)}
@@ -128,7 +154,7 @@ const CartView = ({ cart, setCart, userName }) => {
         className="w-full mb-4 px-4 py-2 rounded text-black"
       />
       <button
-        onClick={exportToPDF}  // Вызываем функцию обновления остатков и генерации PDF
+        onClick={exportToPDF} // Вызываем функцию обновления остатков и генерации PDF
         className="w-full bg-white text-black font-semibold px-6 py-3 rounded-full"
       >
         Экспортировать в PDF

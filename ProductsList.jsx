@@ -6,6 +6,8 @@ const ProductsList = ({ cart, setCart, filter, setFilter, expandedCategories, to
   const [search, setSearch] = useState("");
   const [tempQuantities, setTempQuantities] = useState({});
   const [categories, setCategories] = useState({});
+  const [descriptions, setDescriptions] = useState({}); // Для хранения описаний из Google Sheets
+  const [isMenuOpen, setMenuOpen] = useState(false); // Состояние для мобильного меню
 
   // Получаем товары с сервера
   useEffect(() => {
@@ -17,20 +19,42 @@ const ProductsList = ({ cart, setCart, filter, setFilter, expandedCategories, to
         const categoryMap = {};
 
         res.data.forEach((product) => {
-          const categoryParts = product.category.split('/').map((part) => part.trim()); // Разделяем по "/"
+          const categoryParts = product.category.split("/").map((part) => part.trim());
 
           let currentLevel = categoryMap;
           categoryParts.forEach((part, index) => {
             if (!currentLevel[part]) {
-              currentLevel[part] = index === categoryParts.length - 1 ? [] : {}; // Если это последний элемент, добавляем пустой массив для подкатегорий
+              currentLevel[part] = index === categoryParts.length - 1 ? [] : {};
             }
-            currentLevel = currentLevel[part]; // Переходим к следующему уровню
+            currentLevel = currentLevel[part];
           });
         });
 
-        setCategories(categoryMap);  // Обновляем категориальную структуру
+        setCategories(categoryMap);
       }
     });
+
+    // Загружаем описания из Google Sheets
+    const fetchDescriptions = async () => {
+      try {
+        const response = await axios.get(
+          `https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{RANGE}?key={API_KEY}`
+        );
+        const rows = response.data.values;
+
+        const descriptionsMap = {};
+        rows.forEach((row) => {
+          const [productId, description] = row;
+          descriptionsMap[productId] = description;
+        });
+
+        setDescriptions(descriptionsMap);
+      } catch (error) {
+        console.error("Ошибка при загрузке данных из Google Sheets:", error);
+      }
+    };
+
+    fetchDescriptions();
   }, []);
 
   const increase = (id, maxQty) => {
@@ -81,104 +105,136 @@ const ProductsList = ({ cart, setCart, filter, setFilter, expandedCategories, to
   // Фильтрация товаров по категориям
   const filtered = products
     .filter((p) => {
-      // Фильтрация товаров по категориям (если filter не пустой)
       if (filter) {
-        const categoryParts = p.category.split('/').map(part => part.trim().toLowerCase());
-        return categoryParts.join('/').startsWith(filter.toLowerCase());
+        const categoryParts = p.category.split("/").map((part) => part.trim().toLowerCase());
+        return categoryParts.join("/").startsWith(filter.toLowerCase());
       }
-      return true; // Если фильтра нет, показываем все товары
+      return true;
     })
-    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase())); // Фильтрация по названию товара
-
-  console.log("Отфильтрованные товары: ", filtered);
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   // Рекурсивная функция для отображения категорий и подкатегорий
-  const renderCategories = (categories, path = "") => {
+  const renderCategories = (categories, path = "", level = 0) => {
     return Object.keys(categories).map((category) => {
       const newPath = path ? `${path}/${category}` : category;
       const isExpanded = expandedCategories[newPath];
 
       return (
-        <div key={newPath} className="flex flex-col">
-          {/* Основная категория */}
+        <div
+          key={newPath}
+          className="flex flex-col"
+          style={{ paddingLeft: `${level * 10}px` }} // Сдвиг подпунктов вправо
+        >
           <button
             onClick={() => {
               toggleCategory(newPath);
-              setFilter(newPath); // Устанавливаем фильтр на выбранную категорию
+              setFilter(filter === newPath ? "" : newPath);
             }}
-            className="px-3 py-1 border rounded mb-2 category-button"
+            className={`px-3 py-1 border rounded mb-2 category-button ${
+              filter === newPath ? "selected" : ""
+            } ${level > 0 ? "subcategory-button" : ""}`}
           >
             {category}
           </button>
-
-          {/* Подкатегории */}
-          {isExpanded && renderCategories(categories[category], newPath)}
+          {isExpanded && renderCategories(categories[category], newPath, level + 1)}
         </div>
       );
     });
   };
 
+  // Генерация хлебных крошек
+  const renderBreadcrumbs = () => {
+    if (!filter) return null;
+
+    const parts = filter.split("/");
+    return (
+      <div className="breadcrumbs">
+        {parts.map((part, index) => {
+          const path = parts.slice(0, index + 1).join("/");
+          return (
+            <span key={path} className="breadcrumb">
+              <button
+                onClick={() => setFilter(path)}
+                className="breadcrumb-button"
+              >
+                {part}
+              </button>
+              {index < parts.length - 1 && " / "}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
-    <div className="pb-28 px-4">
-      {/* Поиск по товарам */}
-      <input
-        type="text"
-        placeholder="Поиск"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full mb-4 px-4 py-2 rounded text-black"
-      />
-
-      {/* Категории и подкатегории в виде меню с возможностью раскрытия */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <button onClick={() => setFilter("")} className="px-3 py-1 border rounded">
-          Все
-        </button>
-
-        {renderCategories(categories)}  {/* Вставка категорий и подкатегорий */}
+    <div className="flex">
+      {/* Боковая панель с категориями */}
+      <div className="category-container hidden md:block">
+        {renderCategories(categories)}
       </div>
 
-      {/* Отображение отфильтрованных товаров */}
-      {filtered.length > 0 ? (
-        filtered.map((product) => (
-          <div key={product.id} className="bg-white text-black rounded-xl shadow p-4 mb-4">
-            <div className="flex items-center">
-              <img
-                src={product.imageURLs[0]}
-                alt={product.name}
-                className="w-24 h-24 object-cover rounded mr-4"
-              />
-              <div className="flex-1">
-                <h3 className="font-bold text-lg">{product.name}</h3>
-                <p className="text-sm text-gray-700">На складе: {product.quantity}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    onClick={() => decrease(product.id)}
-                    className="bg-black text-white rounded-full w-8 h-8"
-                  >
-                    −
-                  </button>
-                  <span>{tempQuantities[product.id] || 0}</span>
-                  <button
-                    onClick={() => increase(product.id, product.quantity)}
-                    className="bg-black text-white rounded-full w-8 h-8"
-                  >
-                    +
-                  </button>
+      {/* Основное содержимое */}
+      <div className="content-container flex-1 pb-28 px-4">
+        {/* Поиск по товарам */}
+        <input
+          type="text"
+          placeholder="Поиск"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full mb-4 px-4 py-2 rounded text-black"
+        />
+
+        {/* Хлебные крошки */}
+        {renderBreadcrumbs()}
+
+        {/* Отображение отфильтрованных товаров */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filtered.length > 0 ? (
+            filtered.map((product) => (
+              <div key={product.id} className="card">
+                <img
+                  src={product.imageURLs[0]}
+                  alt={product.name}
+                  className="w-24 h-24 object-cover rounded"
+                />
+                <div className="flex-1 text-center">
+                  <h3 className="font-bold text-lg">{product.name}</h3>
+                  <p className="text-sm text-gray-700 mb-2">
+                    {descriptions[product.id]?.slice(0, 100) || "Описание отсутствует..."}
+                  </p>
+                  <p className="text-sm text-gray-700">На складе: {product.quantity}</p>
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <button
+                      onClick={() => decrease(product.id)}
+                      className="bg-black text-white rounded-full w-8 h-8"
+                    >
+                      −
+                    </button>
+                    <span>{tempQuantities[product.id] || 0}</span>
+                    <button
+                      onClick={() => increase(product.id, product.quantity)}
+                      className="bg-black text-white rounded-full w-8 h-8"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
+                <button
+                  onClick={() => addToCart(product)}
+                  className="mt-3 bg-black text-white w-full py-2 rounded-full"
+                >
+                  Добавить в корзину
+                </button>
               </div>
+            ))
+          ) : (
+            <div className="text-center text-white col-span-full">
+              Нет товаров для отображения по выбранному фильтру
             </div>
-            <button
-              onClick={() => addToCart(product)}
-              className="mt-3 bg-black text-white w-full py-2 rounded-full"
-            >
-              Добавить в корзину
-            </button>
-          </div>
-        ))
-      ) : (
-        <div className="text-center text-white">Нет товаров для отображения по выбранному фильтру</div>
-      )}
+          )}
+        </div>
+      </div>
     </div>
   );
 };
